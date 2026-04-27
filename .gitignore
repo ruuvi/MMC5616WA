@@ -53,3 +53,7 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Local datasheet artifacts
+MMC5616WADatasheetv1.4.pdf
+MMC5616WADatasheetv1.4.txt

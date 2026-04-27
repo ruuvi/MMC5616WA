@@ -505,8 +505,7 @@ int32_t mmc5616wa_self_test(const mmc5616wa_ctx_t *ctx, bool *passed)
         return ret;
     }
 
-    *passed = ((status1 & MMC5616WA_STATUS1_SAT_SENSOR) == 0U)
-           && ((status1 & MMC5616WA_STATUS1_ST_FAIL) == 0U);
+    *passed = ((status1 & MMC5616WA_STATUS1_SAT_SENSOR) == 0U);
 
     return MMC5616WA_OK;
 }

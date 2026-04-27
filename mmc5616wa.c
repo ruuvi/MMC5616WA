@@ -450,6 +450,9 @@ int32_t mmc5616wa_self_test(const mmc5616wa_ctx_t *ctx, bool *passed)
 {
     uint8_t factory_values[3] = {0U};
     uint8_t thresholds[3] = {0U};
+    uint8_t status1_before = 0U;
+    uint8_t status1_after_set = 0U;
+    uint8_t status1_after_reset = 0U;
     uint8_t status1 = 0U;
     int32_t ret;
     size_t index;
@@ -461,6 +464,14 @@ int32_t mmc5616wa_self_test(const mmc5616wa_ctx_t *ctx, bool *passed)
 
     *passed = false;
 
+    ret = mmc5616wa_read_byte(ctx, MMC5616WA_REG_STATUS1, &status1_before);
+
+    if (ret != MMC5616WA_OK)
+    {
+        return ret;
+    }
+
+    // 1) Read out the selftest signal stored at register 27H, 28H, and 29H.
     ret = mmc5616wa_read_reg(ctx, MMC5616WA_REG_ST_X, factory_values,
                              (uint16_t)sizeof(factory_values));
 
@@ -469,11 +480,19 @@ int32_t mmc5616wa_self_test(const mmc5616wa_ctx_t *ctx, bool *passed)
         return ret;
     }
 
+    // 2) Calculate the selftest signal threshold with 80% of the data readout from above registers.
     for (index = 0; index < sizeof(factory_values); index++)
     {
-        thresholds[index] = (uint8_t)(((uint16_t)factory_values[index] * 4U) / 5U);
+        uint16_t threshold = 0U;
+        const uint8_t trim_delta = (factory_values[index] >= 128U)
+                                   ? (uint8_t)(factory_values[index] - 128U)
+                                   : (uint8_t)(128U - factory_values[index]);
+
+        threshold = ((uint16_t)trim_delta * 16U) / 5U;
+        thresholds[index] = (threshold > UINT8_MAX) ? UINT8_MAX : (uint8_t)threshold;
     }
 
+    // 3)  Write the threshold in to the register 1EH, 1FH, and 20H.
     ret = mmc5616wa_write_reg(ctx, MMC5616WA_REG_ST_X_TH, thresholds,
                               (uint16_t)sizeof(thresholds));
 
@@ -482,6 +501,38 @@ int32_t mmc5616wa_self_test(const mmc5616wa_ctx_t *ctx, bool *passed)
         return ret;
     }
 
+    /* Recondition the sensor before self-test so Sat_sensor is evaluated after
+     * an explicit set/reset cycle instead of whatever magnetic state the part
+     * happened to be left in. */
+    ret = mmc5616wa_do_set(ctx);
+
+    if (ret != MMC5616WA_OK)
+    {
+        return ret;
+    }
+
+    ret = mmc5616wa_read_byte(ctx, MMC5616WA_REG_STATUS1, &status1_after_set);
+
+    if (ret != MMC5616WA_OK)
+    {
+        return ret;
+    }
+
+    ret = mmc5616wa_do_reset(ctx);
+
+    if (ret != MMC5616WA_OK)
+    {
+        return ret;
+    }
+
+    ret = mmc5616wa_read_byte(ctx, MMC5616WA_REG_STATUS1, &status1_after_reset);
+
+    if (ret != MMC5616WA_OK)
+    {
+        return ret;
+    }
+
+    // 4) Write [01000001] (TM_M and auto_st_en high) to Internal Control Register 1BH to initiate a selftest.
     ret = mmc5616wa_write_byte(ctx, MMC5616WA_REG_INTERNAL_CTRL_0,
                                (uint8_t)(MMC5616WA_CTRL0_AUTO_ST_EN
                                | MMC5616WA_CTRL0_TAKE_MEAS_M));
@@ -498,6 +549,7 @@ int32_t mmc5616wa_self_test(const mmc5616wa_ctx_t *ctx, bool *passed)
         return ret;
     }
 
+    // 5) Read out value of Sat_sensor bit at the Device Status register 18H.
     ret = mmc5616wa_read_byte(ctx, MMC5616WA_REG_STATUS1, &status1);
 
     if (ret != MMC5616WA_OK)
@@ -505,6 +557,7 @@ int32_t mmc5616wa_self_test(const mmc5616wa_ctx_t *ctx, bool *passed)
         return ret;
     }
 
+    // 6) Sat_sensor=0, PASS selftest.
     *passed = ((status1 & MMC5616WA_STATUS1_SAT_SENSOR) == 0U);
 
     return MMC5616WA_OK;

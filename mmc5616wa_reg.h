@@ -69,15 +69,15 @@ extern "C" {
 #define MMC5616WA_YOUT2_FIFO_EMPTY         (0x01U)
 #define MMC5616WA_ZOUT2_AXIS_LSB_MASK      (0xF0U)
 
-/* Datasheet examples describe Meas_M_Done as bit 1 and Sat_sensor as bit 2. */
-#define MMC5616WA_STATUS1_MEAS_T_DONE      (0x01U)
-#define MMC5616WA_STATUS1_MEAS_M_DONE      (0x02U)
-#define MMC5616WA_STATUS1_SAT_SENSOR       (0x04U)
-#define MMC5616WA_STATUS1_OTP_READ_DONE    (0x08U)
-#define MMC5616WA_STATUS1_ST_FAIL          (0x10U)
-#define MMC5616WA_STATUS1_MDT_FLAG_INT     (0x20U)
-#define MMC5616WA_STATUS1_MEAS_T_DONE_INT  (0x40U)
-#define MMC5616WA_STATUS1_MEAS_M_DONE_INT  (0x80U)
+/* Datasheet Status1 table lists Meas_t_done at bit 7 and Meas_m_done_int at bit 0. */
+#define MMC5616WA_STATUS1_MEAS_T_DONE      (0x80U)
+#define MMC5616WA_STATUS1_MEAS_M_DONE      (0x40U)
+#define MMC5616WA_STATUS1_SAT_SENSOR       (0x20U)
+#define MMC5616WA_STATUS1_OTP_READ_DONE    (0x10U)
+#define MMC5616WA_STATUS1_ST_FAIL          (0x08U)
+#define MMC5616WA_STATUS1_MDT_FLAG_INT     (0x04U)
+#define MMC5616WA_STATUS1_MEAS_T_DONE_INT  (0x02U)
+#define MMC5616WA_STATUS1_MEAS_M_DONE_INT  (0x01U)
 
 #define MMC5616WA_STATUS0_PENDING_INT_MASK   (0x03U)
 #define MMC5616WA_STATUS0_MDT_FLAG           (0x04U)
